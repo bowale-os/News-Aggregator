@@ -1,18 +1,25 @@
 import requests
 import sqlite3
-import streamlit as st
+import random
 
-API_KEY = yourapikey
-category = 'health'  
 
-endpoints = f'https://newsapi.org/v2/top-headlines?country=us&pageSize=50category={category}&apiKey={API_KEY}'
+API_KEY = '7ad8fc5d5de54be1b09d7ebf727673a0'
+lit = ["Business","Entertainment","General","Health","Politics","Science","Sports","Technology"]
+category = random.shuffle(lit)  # Change this to the desired category
+
+header = {
+    'X-Api-Key': '7ad8fc5d5de54be1b09d7ebf727673a0'
+}
+
+endpoints = f'https://newsapi.org/v2/top-headlines?country=us&pageSize=50&category={category}&apiKey={API_KEY}'
 response = requests.get(endpoints)
 news_data = response.json()
 
+# print(news_data)
 conn = sqlite3.connect('news.db')
 cursor = conn.cursor()
 cursor.execute("""
-CREATE TABLE IF NOT EXISTS aticles (
+CREATE TABLE IF NOT EXISTS articles (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     title TEXT,
     source TEXT,
@@ -50,7 +57,7 @@ for article in news_data["articles"]:
         # Insert data into the articles table
         category = assign_category(title)
         cursor.execute("""
-        INSERT INTO aticles (title, source, url, published_at, category)
+        INSERT INTO articles (title, source, url, published_at, category)
         VALUES (?, ?, ?, ?, ?)
         """, (title, source, url, published_at, category))
     except sqlite3.IntegrityError:
@@ -62,12 +69,11 @@ conn.commit()
 
 print("Data inserted successfully into the database.")
 
-cursor.execute("SELECT * FROM aticles WHERE category = ? ORDER BY published_at DESC LIMIT 5", ('general',))
-cursor.execute("SELECT * FROM aticles WHERE source = ? ORDER BY published_at DESC LIMIT 5", ('BBC.com',))
+# cursor.execute("SELECT * FROM articles WHERE category = ? ORDER BY published_at DESC LIMIT 5", ('general',))
 
-articles = cursor.fetchall()
+# articles = cursor.fetchall()
 
-for article in articles:
-    print(f"Title: {article[1]}")
-    print(f"Source: {article[2]}")
-    print(f"URL: {article[3]}\n")
+# for article in articles:
+#     print(f"Title: {article[1]}")
+#     print(f"Source: {article[2]}")
+#     print(f"URL: {article[3]}\n")
