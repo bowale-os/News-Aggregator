@@ -2,12 +2,8 @@ import requests
 import sqlite3
 import streamlit as st
 
-API_KEY = '7ad8fc5d5de54be1b09d7ebf727673a0'
+API_KEY = yourapikey
 category = 'health'  
-
-header = {
-    'X-Api-Key': '7ad8fc5d5de54be1b09d7ebf727673a0'
-}
 
 endpoints = f'https://newsapi.org/v2/top-headlines?country=us&pageSize=50category={category}&apiKey={API_KEY}'
 response = requests.get(endpoints)
