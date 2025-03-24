@@ -1,12 +1,12 @@
-import streamlit as st
-import sqlite3
 import os
+import sqlite3
+import streamlit as st
+from email_handler import send_keyword_news  # Import the email handler function
 
 # Define the path to the database
 db_path = os.path.abspath("news.db")
-st.write(f"Using database: {db_path}")
 
-# Function to get database connection (no need to cache)
+# Function to get database connection
 def get_db_connection():
     return sqlite3.connect(db_path, check_same_thread=False)
 
@@ -14,34 +14,71 @@ def get_db_connection():
 conn = get_db_connection()
 cursor = conn.cursor()
 
-# Streamlit title
-st.title('News Aggregator')
+cursor.execute("""
+CREATE TABLE IF NOT EXISTS user_subscriptions (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    email TEXT NOT NULL UNIQUE,
+    keyword TEXT NOT NULL
+)
+"""
+            )
+conn.commit()
+
+
+
+# Streamlit UI
+st.title('News Aggregator with Email Subscription')
+st.write("Stay updated with the latest news articles.")
+
+#Input for email subscription
+email = st.text_input("Enter your email:", key="email_input")
 
 # Input for keyword search
 keyword = st.text_input("Search for news articles by keyword:")
 
-# Query based on the keyword or display the latest articles
-if keyword:
-    cursor.execute("SELECT * FROM articles WHERE title LIKE ? ORDER BY published_at DESC", ('%' + keyword + '%',))
-    articles = cursor.fetchall()
-else:
-    st.write("Displaying the latest articles...")
-    cursor.execute("SELECT * FROM articles ORDER BY published_at DESC LIMIT 10")
-    articles = cursor.fetchall()
+#Submit button for email subscription
+subscribe_button = st.button("Subscribe to News")
+if subscribe_button and email.endswith(".com"):
+        if email and keyword:
+            #save subscription to database
+            cursor.execute("""
+                INSERT INTO user_subscriptions (email, keyword)
+                VALUES(?,?)
+    """,(email, keyword))
+            conn.commit()
+            st.success("You have successfully subscribed to email alerts!")
+        else:
+            st.error("Please fill in both fields!")
 
-# Display articles
-for article in articles:
-    st.write(f"**Title:** {article[1]}")
-    st.write(f"**Source:** {article[2]}")
-    st.write(f"**Published At:** {article[4]}")
-    st.write(f"[Read more]({article[3]})")
-    st.write("---")
+cursor.execute("SELECT * FROM user_subscriptions")
+subscriptions = cursor.fetchall()
 
-# Keep the connection open while Streamlit is running
-# Don't close the connection here! Let Streamlit manage it across runs.
+if subscriptions:
+    st.write("Current Subscriptions:")
+    for subscription in subscriptions:
+        st.write(f"Email: {subscription[1]} - Keyword: {subscription[2]}")
+
+send_keyword_news()  
+st.write("Email notifications sent successfully!")
+# Call the function to send email notifications based on subscriptions
+# Note: The database connection is not closed here because Streamlit manages the connection across runs.
 
 
-# cursor.execute("SELECT COUNT(id) FROM articles")
-# categories = cursor.fetchall()
-# print(categories)
+#Function to delete subscription
+def delete_subscription(email, keyword):
+    db_path = "news.db"
+    with sqlite3.connect(db_path) as conn:
+        cursor = conn.cursor()
+        
+        cursor.execute("DELETE FROM user_subscriptions WHERE email = ? AND keyword = ?", (email, keyword))
+        conn.commit()
+        
+        print(f"Deleted subscription for {email} on keyword '{keyword}'")
+
+# Example Usage
+delete_subscription("danny2show@gmail.com", "Code, TypeScript")
+
+
+
+
 
